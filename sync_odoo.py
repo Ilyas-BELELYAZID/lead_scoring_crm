@@ -159,6 +159,7 @@ def main():
         update_sql = f"""
             UPDATE crm_lead
             SET ml_probability = {prob},
+                probability = {prob},
                 priority = '{prio}',
                 ai_explanation = '{clean_expl}'
             WHERE id = {lead['id']};
