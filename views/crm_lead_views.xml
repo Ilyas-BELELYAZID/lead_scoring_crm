@@ -62,5 +62,13 @@
         </field>
     </record>
 
+    <!-- ================================================================
+         Leads Menu Action – display all inbound records (leads & opportunities)
+         ================================================================ -->
+    <record id="crm.crm_lead_all_leads" model="ir.actions.act_window">
+        <field name="domain">[]</field>
+        <field name="context">{'default_type': 'opportunity'}</field>
+    </record>
+
 </odoo>
 

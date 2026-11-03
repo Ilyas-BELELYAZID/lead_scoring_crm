@@ -78,9 +78,23 @@ class LeadScoringWebsite(http.Controller):
         }
         manual_score += industry_scores.get(industry, 0)
 
-        # 4. ORM Create in crm.lead
+        # 4. Find or Create Partner so prospect appears in Contacts & Customers
+        partner = False
+        if email:
+            partner = request.env['res.partner'].sudo().search([('email', '=', email)], limit=1)
+        if not partner and (contact_name or company_name):
+            partner_vals = {
+                'name': contact_name or company_name,
+                'email': email,
+                'phone': phone,
+                'company_type': 'person' if contact_name else 'company',
+            }
+            partner = request.env['res.partner'].sudo().create(partner_vals)
+
+        # 5. ORM Create in crm.lead
         lead_vals = {
             'name': f"Demo Request - {company_name or contact_name or 'Prospect'}",
+            'partner_id': partner.id if partner else False,
             'contact_name': contact_name,
             'email_from': email,
             'phone': phone,
