@@ -1,0 +1,1682 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================
+         WEBSITE MENU ITEMS
+         ================================================================ -->
+    <record id="menu_home" model="website.menu">
+        <field name="name">Solutions</field>
+        <field name="url">/</field>
+        <field name="parent_id" ref="website.main_menu"/>
+        <field name="sequence">10</field>
+    </record>
+    <record id="menu_pricing" model="website.menu">
+        <field name="name">Pricing</field>
+        <field name="url">/pricing</field>
+        <field name="parent_id" ref="website.main_menu"/>
+        <field name="sequence">20</field>
+    </record>
+    <record id="menu_docs" model="website.menu">
+        <field name="name">Documentation</field>
+        <field name="url">#</field>
+        <field name="parent_id" ref="website.main_menu"/>
+        <field name="sequence">25</field>
+    </record>
+    <record id="menu_demo" model="website.menu">
+        <field name="name">Book a Demo</field>
+        <field name="url">/demo</field>
+        <field name="parent_id" ref="website.main_menu"/>
+        <field name="sequence">30</field>
+    </record>
+
+    <!-- Google Fonts Inter & JetBrains Mono loaded cleanly in HTML Head -->
+    <template id="custom_font_assets" inherit_id="website.layout" name="Custom Fonts">
+        <xpath expr="//head" position="inside">
+            <link rel="preconnect" href="https://fonts.googleapis.com"/>
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""/>
+            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+        </xpath>
+    </template>
+
+    <!-- ================================================================
+         INLINE TELEMETRY SCRIPT (bypasses Odoo asset cache)
+         ================================================================ -->
+    <template id="telemetry_inline_script" inherit_id="website.layout" name="RevEngine Telemetry Script">
+        <xpath expr="//body" position="inside">
+            <script>
+                (function () {
+                    'use strict';
+
+                    var SK = 'session_start_time';
+                    var PK = 'nx_session_page_views';
+                    var VK = 'pricing_visits';
+
+                    /* ── Session start ─────────────────────────── */
+                    var startRaw = sessionStorage.getItem(SK);
+                    var sessionStart;
+                    if (!startRaw) {
+                        sessionStart = Date.now();
+                        sessionStorage.setItem(SK, sessionStart);
+                    } else {
+                        sessionStart = parseInt(startRaw, 10);
+                    }
+
+                    /* ── Page views counter ────────────────────── */
+                    var pv = parseInt(sessionStorage.getItem(PK) || '0', 10) + 1;
+                    sessionStorage.setItem(PK, pv);
+
+                    /* ── Pricing visits counter ────────────────── */
+                    var onPricing = window.location.pathname.indexOf('/pricing') !== -1;
+                    var prv = parseInt(sessionStorage.getItem(VK) || '0', 10);
+                    if (onPricing) {
+                        prv += 1;
+                        sessionStorage.setItem(VK, prv);
+                    }
+
+                    /* ── Update HUD pill ───────────────────────── */
+                    function updateHUD() {
+                        var el = document.getElementById('nxPageViews');
+                        if (el) el.textContent = pv + (pv === 1 ? ' page' : ' pages');
+
+                        var sec = Math.floor((Date.now() - sessionStart) / 1000);
+                        var mm = String(Math.floor(sec / 60)).padStart(2, '0');
+                        var ss = String(sec % 60).padStart(2, '0');
+                        var fmt = mm + ':' + ss;
+
+                        var t1 = document.getElementById('nxSessionTimer');
+                        if (t1) t1.textContent = fmt;
+
+                        var t2 = document.getElementById('stripDuration');
+                        if (t2) t2.textContent = fmt + 's';
+                    }
+
+                    /* Run immediately + every second */
+                    updateHUD();
+                    setInterval(updateHUD, 1000);
+
+                    /* ── Pricing dwell beacon ──────────────────── */
+                    if (onPricing) {
+                        var ps = Date.now();
+                        function beacon() {
+                            var t = Math.round((Date.now() - ps) / 1000);
+                            var body = JSON.stringify({jsonrpc:'2.0',method:'call',params:{time_spent:t}});
+                            if (navigator.sendBeacon) {
+                                navigator.sendBeacon('/telemetry/pricing', new Blob([body],{type:'application/json'}));
+                            }
+                        }
+                        window.addEventListener('beforeunload', beacon);
+                        setInterval(beacon, 25000);
+                    }
+
+                    /* ── Billing toggle ────────────────────────── */
+                    var bm = document.getElementById('btnMonthly');
+                    var ba = document.getElementById('btnAnnual');
+                    if (bm <![CDATA[&&]]> ba) {
+                        bm.addEventListener('click', function () {
+                            bm.classList.add('active'); ba.classList.remove('active');
+                            var ps2 = document.getElementById('priceStarter'); if (ps2) ps2.textContent = '$480';
+                            var pp = document.getElementById('pricePro'); if (pp) pp.textContent = '$1,480';
+                        });
+                        ba.addEventListener('click', function () {
+                            ba.classList.add('active'); bm.classList.remove('active');
+                            var ps3 = document.getElementById('priceStarter'); if (ps3) ps3.textContent = '$390';
+                            var pp2 = document.getElementById('pricePro'); if (pp2) pp2.textContent = '$1,190';
+                        });
+                    }
+
+                    /* ── FAQ accordion ─────────────────────────── */
+                    document.querySelectorAll('.nx-faq-trigger').forEach(function (tr) {
+                        tr.addEventListener('click', function () {
+                            var it = tr.closest('.nx-faq-item');
+                            if (it) it.classList.toggle('active');
+                        });
+                    });
+
+                    /* ── Live JSON terminal sync (demo page) ──── */
+                    var jPages = document.getElementById('jsonPages');
+                    var jPrv   = document.getElementById('jsonPricingVisits');
+                    var jTime  = document.getElementById('jsonTime');
+                    if (jPages) jPages.textContent = pv;
+                    if (jPrv)   jPrv.textContent = prv;
+
+                    function syncTerminal() {
+                        var els = [
+                            ['f_name','jsonName'], ['f_email','jsonEmail'],
+                            ['f_company','jsonCompany']
+                        ];
+                        els.forEach(function(p) {
+                            var inp = document.getElementById(p[0]);
+                            var out = document.getElementById(p[1]);
+                            if (inp <![CDATA[&&]]> out) out.textContent = JSON.stringify(inp.value);
+                        });
+                        var selects = [
+                            ['f_industry','jsonIndustry'], ['f_role','jsonRole'],
+                            ['f_size','jsonSize'], ['f_crm','jsonCrm']
+                        ];
+                        selects.forEach(function(p) {
+                            var sel = document.getElementById(p[0]);
+                            var out = document.getElementById(p[1]);
+                            if (sel <![CDATA[&&]]> out) {
+                                var txt = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : '';
+                                out.textContent = JSON.stringify(txt);
+                            }
+                        });
+                        if (jTime) {
+                            jTime.textContent = Math.floor((Date.now() - sessionStart) / 1000);
+                        }
+                    }
+
+                    ['f_name','f_email','f_company'].forEach(function(id) {
+                        var e = document.getElementById(id);
+                        if (e) e.addEventListener('input', syncTerminal);
+                    });
+                    ['f_industry','f_role','f_size','f_crm'].forEach(function(id) {
+                        var e = document.getElementById(id);
+                        if (e) e.addEventListener('change', syncTerminal);
+                    });
+
+                    setInterval(function() {
+                        if (jTime) jTime.textContent = Math.floor((Date.now() - sessionStart) / 1000);
+                    }, 1000);
+
+                    /* ── Copy JSON button ──────────────────────── */
+                    var cpBtn = document.getElementById('btnCopyJson');
+                    if (cpBtn) {
+                        cpBtn.addEventListener('click', function () {
+                            var pe = document.getElementById('livePayloadJson');
+                            if (pe <![CDATA[&&]]> navigator.clipboard) {
+                                navigator.clipboard.writeText(pe.innerText).then(function () {
+                                    cpBtn.textContent = '✓ Copied!';
+                                    cpBtn.style.background = '#059669';
+                                    setTimeout(function () { cpBtn.textContent = '📋 Copy Raw JSON for Odoo'; cpBtn.style.background = ''; }, 2000);
+                                });
+                            }
+                        });
+                    }
+
+                    /* ── Report download tracking ─────────────── */
+                    var rBtn = document.getElementById('downloadReportBtn');
+                    if (rBtn) {
+                        rBtn.addEventListener('click', function (ev) {
+                            ev.preventDefault();
+                            fetch('/telemetry/report', {
+                                method: 'POST',
+                                headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify({jsonrpc:'2.0',method:'call',params:{}})
+                            });
+                            rBtn.innerHTML = '✓ Downloaded'; rBtn.style.background = '#10B981';
+                            setTimeout(function(){ rBtn.innerHTML = 'Download Report (Free PDF)'; rBtn.style.background=''; }, 3500);
+                        });
+                    }
+
+                    /* ── Form submission: inject telemetry ─────── */
+                    var form = document.getElementById('demoArchitectureForm');
+                    if (form) {
+                        form.addEventListener('submit', function () {
+                            var ts = Math.floor((Date.now() - sessionStart) / 1000);
+                            var ti = document.getElementById('time_on_site');
+                            var pi = document.getElementById('pricing_page_visits');
+                            if (ti) ti.value = ts;
+                            if (pi) pi.value = parseInt(sessionStorage.getItem(VK) || '0', 10);
+                        });
+                    }
+
+                    /* ── HUD click info ────────────────────────── */
+                    var hud = document.getElementById('nxTelemetryHud');
+                    if (hud) {
+                        hud.style.cursor = 'pointer';
+                        hud.title = 'Live Telemetry Active';
+                        hud.addEventListener('click', function () {
+                            var sec2 = Math.floor((Date.now() - sessionStart) / 1000);
+                            alert(
+                                '📡 REVENGINE TELEMETRY HUD\n─────────────────────\n' +
+                                '• Pages: ' + pv + '\n' +
+                                '• Session: ' + sec2 + 's\n' +
+                                '• Pricing Views: ' + prv + '\n' +
+                                '• CNDP: Validated'
+                            );
+                        });
+                    }
+                })();
+            </script>
+        </xpath>
+    </template>
+
+    <!-- ================================================================
+         HOME PAGE
+         ================================================================ -->
+    <template id="homepage" name="RevEngine - Home">
+        <t t-call="website.layout">
+            <t t-set="no_header" t-value="True"/>
+            <t t-set="no_footer" t-value="True"/>
+            <div id="wrap" class="nx-page">
+
+                <!-- ── ENTERPRISE EXECUTIVE HEADER ───────────────────── -->
+                <header class="nx-header">
+                    <div class="container d-flex align-items-center justify-content-between">
+                        <!-- Brand -->
+                        <a href="/" class="nx-brand">
+                            <span class="nx-brand-sparkle">✦</span>
+                            <span class="nx-brand-name">RevEngine</span>
+                            <span class="nx-badge-version">v2.4</span>
+                        </a>
+
+                        <!-- Center Nav Pill -->
+                        <nav class="nx-nav-pill d-none d-lg-flex align-items-center">
+                            <a href="/" class="nx-nav-link active">Solutions</a>
+                            <a href="/pricing" class="nx-nav-link">Pricing</a>
+                            <a href="#" class="nx-nav-link">Documentation</a>
+                            <a href="#report-section" class="nx-nav-link nx-report-pill-link">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                </svg>
+                                RevOps '26 Report
+                            </a>
+                        </nav>
+
+                        <!-- Right Actions -->
+                        <div class="d-flex align-items-center gap-3">
+                            <a href="/pricing" class="nx-link-plans d-none d-sm-inline-block">View Plans</a>
+                            <a href="/demo" class="nx-btn nx-btn-nav">
+                                Book a Demo
+                                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" class="ms-1">
+                                    <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </a>
+                        </div>
+                    </div>
+                </header>
+
+                <!-- ── HERO ─────────────────────────────────────────── -->
+                <section class="nx-hero">
+                    <div class="nx-hero-bg"></div>
+                    <div class="container position-relative">
+
+                        <!-- Status pill matching screenshot -->
+                        <div class="text-center">
+                            <div class="nx-status-pill">
+                                <span class="nx-status-dot"></span>
+                                RevEngine Engine 2.0 (Live in MENA)
+                                <span class="nx-status-divider">|</span>
+                                Casablanca : 90
+                            </div>
+                        </div>
+
+                        <h1 class="nx-hero-title text-center mt-4">
+                            Enterprise Cloud &amp; RevOps<br/>
+                            Automation Powered by<br/>
+                            <span class="nx-gradient-text">Predictive Intelligence</span>
+                        </h1>
+
+                        <p class="nx-hero-subtitle text-center mx-auto">
+                            Unify CRM workflows, automate lead qualification with precision ML
+                            scoring, and eliminate sales pipeline bottlenecks at scale.
+                        </p>
+
+                        <div class="nx-hero-actions text-center">
+                            <a href="/demo" class="nx-btn nx-btn-primary">
+                                Request Enterprise Demo
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="ms-2">
+                                    <line x1="7" y1="17" x2="17" y2="7"></line>
+                                    <polyline points="7 7 17 7 17 17"></polyline>
+                                </svg>
+                            </a>
+                            <a href="/pricing" class="nx-btn nx-btn-outline">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                                </svg>
+                                View Pricing &amp; Tiers
+                            </a>
+                        </div>
+
+                        <!-- ── BROWSER MOCKUP (PIXEL-PERFECT FROM SCREENSHOT) ── -->
+                        <div class="nx-browser-mockup mt-5">
+
+                            <!-- Browser chrome -->
+                            <div class="nx-browser-bar">
+                                <div class="nx-browser-dots">
+                                    <span class="dot red"></span>
+                                    <span class="dot yellow"></span>
+                                    <span class="dot green"></span>
+                                </div>
+                                <div class="nx-browser-url">
+                                    <span class="me-2 text-muted">&gt;_</span>
+                                    revengine_engine_predictive_scoring_live_data_feed
+                                </div>
+                                <div class="nx-stream-badge">
+                                    <span class="nx-status-dot nx-status-dot-sm"></span>
+                                    Stream Connected (Live)
+                                </div>
+                            </div>
+
+                            <!-- Dashboard content -->
+                            <div class="nx-dashboard">
+                                <div class="row g-0 align-items-center">
+
+                                    <!-- Left: Scoring panel -->
+                                    <div class="col-md-5 nx-dash-left">
+                                        <div class="nx-dash-header">
+                                            <span class="nx-dash-label">AI LEAD SCORING SUITE</span>
+                                            <span class="nx-dash-id">ID: APC-7821</span>
+                                        </div>
+
+                                        <div class="nx-score-ring-wrap">
+                                            <svg class="nx-score-ring" viewBox="0 0 140 140">
+                                                <defs>
+                                                    <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                                        <stop offset="0%" stop-color="#3B82F6"/>
+                                                        <stop offset="100%" stop-color="#6366F1"/>
+                                                    </linearGradient>
+                                                </defs>
+                                                <circle cx="70" cy="70" r="56" fill="none" stroke="#EEF2F6" stroke-width="11"/>
+                                                <circle cx="70" cy="70" r="56" fill="none" stroke="url(#scoreGrad)" stroke-width="11"
+                                                        stroke-dasharray="313 352" stroke-linecap="round"
+                                                        transform="rotate(-90 70 70)" class="nx-ring-progress"/>
+                                            </svg>
+                                            <div class="nx-score-value">
+                                                <span class="nx-score-pct">89</span>
+                                                <span class="nx-score-pct-sign">%</span>
+                                            </div>
+                                        </div>
+
+                                        <!-- High Intent Pill -->
+                                        <div class="nx-intent-pill">
+                                            <span class="nx-intent-dot"></span>
+                                            TOP 1% HIGH INTENT
+                                        </div>
+
+                                        <h5 class="nx-score-title mt-2">Conversion Probability</h5>
+                                        <p class="nx-score-desc">
+                                            Calculated from 14<br/>
+                                            demographic &amp; telemetry<br/>
+                                            factors.
+                                        </p>
+                                        <div class="nx-routing">
+                                            <span class="nx-routing-label text-muted">Routing Target:</span>
+                                            <span class="nx-routing-icon">⚡</span>
+                                            <span class="nx-routing-target">Enterprise AE EMEA</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Right: Insight cards -->
+                                    <div class="col-md-7 nx-dash-right">
+                                        <!-- Card 1 -->
+                                        <div class="nx-insight-card">
+                                            <div class="nx-insight-icon blue">
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                                                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                                                </svg>
+                                            </div>
+                                            <div class="nx-insight-body">
+                                                <h6>Firmographic Match: Banking &amp; FinTech</h6>
+                                                <p>Casablanca Finance City (CFC) Cluster</p>
+                                            </div>
+                                            <span class="nx-insight-pts green">+35 pts</span>
+                                        </div>
+
+                                        <!-- Card 2 -->
+                                        <div class="nx-insight-card">
+                                            <div class="nx-insight-icon purple">
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                                    <circle cx="12" cy="12" r="3"></circle>
+                                                </svg>
+                                            </div>
+                                            <div class="nx-insight-body">
+                                                <h6>Pricing Tier Inspection</h6>
+                                                <p>Repeated Enterprise Matrix toggling detected</p>
+                                            </div>
+                                            <span class="nx-insight-pts green">+28 pts</span>
+                                        </div>
+
+                                        <!-- Card 3 -->
+                                        <div class="nx-insight-card">
+                                            <div class="nx-insight-icon green">
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                                </svg>
+                                            </div>
+                                            <div class="nx-insight-body">
+                                                <h6>Morocco Law 09-08 / CNDP Validation</h6>
+                                                <p>Data Sovereignty sandbox verification completed</p>
+                                            </div>
+                                            <span class="nx-insight-pts badge-compliant">Compliant</span>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
+
+                <!-- ── TRUST BAR ────────────────────────────────────── -->
+                <section class="nx-trust">
+                    <div class="container">
+                        <p class="nx-trust-label text-center">
+                            TRUSTED BY FAST-GROWING ENTERPRISES ACROSS MOROCCO &amp; EMEA
+                        </p>
+                        <div class="nx-trust-logos">
+                            <div class="nx-trust-logo">
+                                <span class="nx-logo-glyph">☵</span> ATLAS PAY · FINTECH
+                            </div>
+                            <div class="nx-trust-logo">
+                                <span class="nx-logo-glyph">⬡</span> MEDITEL TELECOM
+                            </div>
+                            <div class="nx-trust-logo">
+                                <span class="nx-logo-glyph">⚓</span> TANGER LOGIX
+                            </div>
+                            <div class="nx-trust-logo">
+                                <span class="nx-logo-glyph">❖</span> MAGHREB OFFSHORING
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ── FEATURES ─────────────────────────────────────── -->
+                <section class="nx-features">
+                    <div class="container">
+
+                        <div class="nx-section-label">ARCHITECTURE &amp; FEATURES</div>
+
+                        <div class="row align-items-start">
+                            <div class="col-lg-4 mb-4 mb-lg-0 pe-lg-4">
+                                <h2 class="nx-features-title">
+                                    Engineered for RevOps teams who
+                                    demand microsecond sync
+                                </h2>
+                                <p class="nx-features-desc">
+                                    RevEngine bridges unstructured lead traffic, behavioural website telemetry,
+                                    and your existing enterprise CRM with automated zero-lag pipelines.
+                                </p>
+                            </div>
+                            <div class="col-lg-8">
+                                <div class="row g-3">
+
+                                    <!-- Card 1 -->
+                                    <div class="col-md-4">
+                                        <div class="nx-feature-card">
+                                            <div class="nx-fcard-icon purple-bg">
+                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2">
+                                                    <circle cx="12" cy="12" r="10"></circle>
+                                                    <line x1="2" y1="12" x2="22" y2="12"></line>
+                                                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                                                </svg>
+                                            </div>
+                                            <h5 class="nx-fcard-title">Predictive Lead Scoring</h5>
+                                            <p class="nx-fcard-desc">
+                                                Proprietary regression &amp; transformer models calculate conversion probability in real time from dwell duration, pricing behavior, and firmographics.
+                                            </p>
+                                            <div class="nx-fcard-meta">
+                                                <span class="nx-fcard-tag">Model Confidence</span>
+                                                <span class="nx-fcard-stat highlight">99.4% ROC-AUC</span>
+                                            </div>
+                                            <div class="nx-fcard-bar">
+                                                <div class="nx-fcard-bar-fill" style="width: 99%"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Card 2 -->
+                                    <div class="col-md-4">
+                                        <div class="nx-feature-card">
+                                            <div class="nx-fcard-icon blue-bg">
+                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" stroke-width="2">
+                                                    <polyline points="23 4 23 10 17 10"></polyline>
+                                                    <polyline points="1 20 1 14 7 14"></polyline>
+                                                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                                                </svg>
+                                            </div>
+                                            <h5 class="nx-fcard-title">Real-time CRM Sync via API</h5>
+                                            <p class="nx-fcard-desc">
+                                                Direct RPC &amp; REST webhooks designed natively for Odoo CRM, HubSpot, and Salesforce. Automatic deduplication and payload enrichment without ETL delay.
+                                            </p>
+                                            <div class="nx-fcard-meta">
+                                                <span class="nx-fcard-tag">Native Protocol</span>
+                                                <span class="nx-fcard-stat">JSON-RPC / Odoo 16+</span>
+                                            </div>
+                                            <div class="nx-fcard-subtag">
+                                                ✓ Zero middleware required
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Card 3 -->
+                                    <div class="col-md-4">
+                                        <div class="nx-feature-card">
+                                            <div class="nx-fcard-icon purple-light-bg">
+                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9333EA" stroke-width="2">
+                                                    <circle cx="18" cy="5" r="3"></circle>
+                                                    <circle cx="6" cy="12" r="3"></circle>
+                                                    <circle cx="18" cy="19" r="3"></circle>
+                                                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                                                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                                                </svg>
+                                            </div>
+                                            <h5 class="nx-fcard-title">Automated Sales Routing</h5>
+                                            <p class="nx-fcard-desc">
+                                                Smart round-robin and territory matching based on company size, geo-IP, and language. Immediately schedules instant demos directly on the AE's calendar.
+                                            </p>
+                                            <div class="nx-fcard-meta">
+                                                <span class="nx-fcard-tag">SLA Escalation Speed</span>
+                                                <span class="nx-fcard-stat">&lt; 400ms</span>
+                                            </div>
+                                            <div class="nx-fcard-subtag">
+                                                ✓ Instant Slack / Teams Alert
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
+
+                <!-- ── REPORT DOWNLOAD (FROM SCREENSHOT) ──────────────── -->
+                <section class="nx-report" id="report-section">
+                    <div class="container">
+                        <div class="nx-report-card">
+                            <div class="row align-items-center">
+                                <div class="col-lg-8">
+                                    <span class="nx-report-badge">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                            <polyline points="14 2 14 8 20 8"></polyline>
+                                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                                        </svg>
+                                        High-Intent Research Report
+                                    </span>
+                                    <h2 class="nx-report-title mt-3">
+                                        Download the 2026 Enterprise B2B RevOps
+                                        Benchmark Report (PDF)
+                                    </h2>
+                                    <p class="nx-report-desc">
+                                        A 48-page executive study on pipeline velocity, predictive qualification,
+                                        and data residency across 340+ EMEA mid-market and enterprise organizations.
+                                    </p>
+                                    <div class="nx-report-meta">
+                                        <span>📄 48 Pages · PDF</span>
+                                        <span class="dot-sep">•</span>
+                                        <span>Instant Download</span>
+                                        <span class="dot-sep">•</span>
+                                        <span class="text-primary font-monospace">Telemetry event logged</span>
+                                    </div>
+                                </div>
+                                <div class="col-lg-4 text-lg-end mt-4 mt-lg-0">
+                                    <a href="#" class="nx-btn nx-btn-dark nx-btn-lg" id="downloadReportBtn">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                            <polyline points="7 10 12 15 17 10"></polyline>
+                                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                                        </svg>
+                                        Download Report (Free PDF)
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ── FOOTER ───────────────────────────────────────── -->
+                <footer class="nx-footer">
+                    <div class="container">
+                        <div class="row align-items-center">
+                            <div class="col-md-5">
+                                <div class="nx-footer-brand">
+                                    <span class="nx-brand-logo-sq">N</span>
+                                    <span class="nx-footer-company">RevEngine Technologies EMEA</span>
+                                    <span class="nx-footer-sep">·</span>
+                                    <span class="nx-footer-cities">Casablanca &amp; Paris</span>
+                                </div>
+                            </div>
+                            <div class="col-md-4 text-center">
+                                <div class="nx-footer-links">
+                                    <a href="/">Solutions</a>
+                                    <a href="/pricing">Pricing</a>
+                                    <a href="/demo">Enterprise Demo</a>
+                                    <a href="#">Documentation</a>
+                                </div>
+                            </div>
+                            <div class="col-md-3 text-md-end mt-3 mt-md-0">
+                                <div class="nx-footer-social">
+                                    <span class="nx-footer-copy">© 2026 RevEngine</span>
+                                    <a href="#" class="nx-social-link" title="Twitter / X">𝕏</a>
+                                    <a href="#" class="nx-social-link" title="LinkedIn">in</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </footer>
+
+                <!-- ── FLOATING TELEMETRY HUD (FROM BOTTOM RIGHT OF SCREENSHOT) ── -->
+                <div class="nx-telemetry-hud" id="nxTelemetryHud">
+                    <span class="nx-telemetry-dot"></span>
+                    <span class="nx-telemetry-text">
+                        TELEMETRY: <strong id="nxPageViews">…</strong> | <span id="nxSessionTimer" class="font-monospace">00:00</span>
+                    </span>
+                </div>
+
+            </div>
+        </t>
+    </template>
+
+    <!-- ================================================================
+         PRICING PAGE (FULL TECHNICAL SPECIFICATION & ENTERPRISE MATRIX)
+         ================================================================ -->
+    <template id="pricing_page" name="RevEngine - Pricing">
+        <t t-call="website.layout">
+            <t t-set="no_header" t-value="True"/>
+            <t t-set="no_footer" t-value="True"/>
+            <div id="wrap" class="nx-page nx-pricing-screen">
+
+                <!-- ── ENTERPRISE EXECUTIVE HEADER ───────────────────── -->
+                <header class="nx-header">
+                    <div class="container d-flex align-items-center justify-content-between">
+                        <!-- Brand -->
+                        <a href="/" class="nx-brand">
+                            <span class="nx-brand-sparkle">✦</span>
+                            <span class="nx-brand-name">RevEngine</span>
+                            <span class="nx-badge-version">v2.4</span>
+                        </a>
+
+                        <!-- Center Nav Pill -->
+                        <nav class="nx-nav-pill d-none d-lg-flex align-items-center">
+                            <a href="/" class="nx-nav-link">Solutions</a>
+                            <a href="/pricing" class="nx-nav-link active">Pricing</a>
+                            <a href="#" class="nx-nav-link">Documentation</a>
+                            <a href="/#report-section" class="nx-nav-link nx-report-pill-link">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                </svg>
+                                RevOps '26 Report
+                            </a>
+                        </nav>
+
+                        <!-- Right Actions -->
+                        <div class="d-flex align-items-center gap-3">
+                            <a href="/pricing" class="nx-link-plans d-none d-sm-inline-block">View Plans</a>
+                            <a href="/demo" class="nx-btn nx-btn-nav">
+                                Book a Demo
+                                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" class="ms-1">
+                                    <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </a>
+                        </div>
+                    </div>
+                </header>
+
+                <!-- ── HERO ─────────────────────────────────────────── -->
+                <section class="nx-pricing-hero-light text-center">
+                    <div class="container">
+                        <!-- Pill -->
+                        <div class="nx-status-pill-dark mx-auto mb-3">
+                            <span class="nx-status-dot"></span>
+                            TRANSPARENT, PREDICTABLE LICENSING
+                            <span class="nx-status-divider">|</span>
+                            Zero Egress Fees
+                        </div>
+
+                        <h1 class="nx-pricing-title">
+                            Predictable pricing designed for<br/>scale
+                        </h1>
+
+                        <p class="nx-pricing-subtitle mx-auto">
+                            Deploy predictive RevOps models and automated lead enrichment pipelines with
+                            zero friction fees. Scale effortlessly from emerging growth to enterprise
+                            multi-tenant workloads.
+                        </p>
+
+                        <!-- Billing Switcher -->
+                        <div class="nx-billing-container mt-4">
+                            <div class="nx-billing-switcher" id="billingSwitcher">
+                                <button type="button" class="nx-billing-toggle" id="btnMonthly">Monthly Billing</button>
+                                <button type="button" class="nx-billing-toggle active" id="btnAnnual">
+                                    Annual Billing
+                                    <span class="nx-discount-tag">20% OFF</span>
+                                </button>
+                                <span class="nx-billing-sparkle-text">
+                                    ★ Save 20% + 2 Free Custom Models
+                                </span>
+                            </div>
+                            <div class="nx-billing-note mt-2 text-muted" id="billingNote">
+                                Billed annually ($11,424 / yr for Professional)
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
+
+                <!-- ── 3 PRICING CARDS ──────────────────────────────── -->
+                <section class="nx-pricing-cards-section">
+                    <div class="container">
+                        <div class="row g-4 justify-content-center">
+
+                            <!-- Tier 1: Starter -->
+                            <div class="col-lg-4 col-md-6">
+                                <div class="nx-tier-card">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <h3 class="nx-tier-name">Starter</h3>
+                                        <span class="nx-tier-pill">EMERGING B2B TEAMS</span>
+                                    </div>
+                                    <p class="nx-tier-desc">
+                                        Emerging B2B sales teams testing algorithmic lead qualification and sync.
+                                    </p>
+                                    <div class="nx-tier-pricing">
+                                        <span class="nx-tier-price" id="priceStarter">$390</span>
+                                        <span class="nx-tier-period">/ month</span>
+                                    </div>
+                                    <div class="nx-tier-subprice text-muted mb-4" id="subStarter">
+                                        Billed annually ($4,680/yr)
+                                    </div>
+
+                                    <div class="nx-tier-section-title">PLAN HIGHLIGHTS</div>
+                                    <ul class="nx-tier-features">
+                                        <li>
+                                            <span class="nx-check-icon">✓</span>
+                                            <span><strong>10,000</strong> monthly active leads</span>
+                                        </li>
+                                        <li>
+                                            <span class="nx-check-icon">✓</span>
+                                            <span>Basic heuristic &amp; rule-based scoring</span>
+                                        </li>
+                                        <li>
+                                            <span class="nx-check-icon">✓</span>
+                                            <span>Standard Odoo &amp; HubSpot sync (15-min intervals)</span>
+                                        </li>
+                                        <li>
+                                            <span class="nx-check-icon">✓</span>
+                                            <span><strong>3</strong> Team seats included</span>
+                                        </li>
+                                        <li>
+                                            <span class="nx-check-icon">✓</span>
+                                            <span>Community &amp; email support (48h response)</span>
+                                        </li>
+                                    </ul>
+
+                                    <div class="mt-auto pt-3">
+                                        <a href="/demo" class="nx-btn nx-btn-outline-card w-100">
+                                            Start 14-Day Free Trial
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Tier 2: Professional (FEATURED) -->
+                            <div class="col-lg-4 col-md-6">
+                                <div class="nx-tier-card nx-tier-featured">
+                                    <div class="nx-featured-badge">MOST POPULAR</div>
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <h3 class="nx-tier-name">Professional</h3>
+                                        <span class="nx-tier-pill purple">HIGH-VELOCITY</span>
+                                    </div>
+                                    <p class="nx-tier-desc">
+                                        High-velocity growth &amp; scaling revenue operations requiring dynamic inference.
+                                    </p>
+                                    <div class="nx-tier-pricing">
+                                        <span class="nx-tier-price" id="pricePro">$1,190</span>
+                                        <span class="nx-tier-period">/ month</span>
+                                    </div>
+                                    <div class="nx-tier-subprice text-muted mb-4" id="subPro">
+                                        Billed annually ($14,280/yr)
+                                    </div>
+
+                                    <div class="nx-tier-section-title">EVERYTHING IN STARTER, PLUS:</div>
+                                    <ul class="nx-tier-features">
+                                        <li>
+                                            <span class="nx-check-icon purple">✓</span>
+                                            <span><strong>100,000</strong> monthly active leads</span>
+                                        </li>
+                                        <li>
+                                            <span class="nx-check-icon purple">✓</span>
+                                            <span>Autonomous ML Scoring (XGBoost &amp; Transformers)</span>
+                                        </li>
+                                        <li>
+                                            <span class="nx-check-icon purple">✓</span>
+                                            <span>Sub-second real-time sync with webhooks</span>
+                                        </li>
+                                        <li>
+                                            <span class="nx-check-icon purple">✓</span>
+                                            <span>Custom CRM payload enrichment &amp; deduplication</span>
+                                        </li>
+                                        <li>
+                                            <span class="nx-check-icon purple">✓</span>
+                                            <span><strong>15</strong> Team seats included</span>
+                                        </li>
+                                        <li>
+                                            <span class="nx-check-icon purple">✓</span>
+                                            <span>Priority 24/7 Dedicated Slack Connect channel</span>
+                                        </li>
+                                    </ul>
+
+                                    <div class="mt-auto pt-3">
+                                        <a href="/demo" class="nx-btn nx-btn-primary w-100">
+                                            Expand Professional
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Tier 3: Enterprise Custom -->
+                            <div class="col-lg-4 col-md-6">
+                                <div class="nx-tier-card">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <h3 class="nx-tier-name">Enterprise Custom</h3>
+                                        <span class="nx-tier-pill green">SOVEREIGN &amp; COMPLIANT</span>
+                                    </div>
+                                    <p class="nx-tier-desc">
+                                        Multinational enterprises &amp; regulated fintechs requiring sovereign residency.
+                                    </p>
+                                    <div class="nx-tier-pricing">
+                                        <span class="nx-tier-price">Custom</span>
+                                        <span class="nx-tier-period">from $2,850/mo</span>
+                                    </div>
+                                    <div class="nx-tier-subprice text-muted mb-4">
+                                        Multi-region or On-Premises VPC
+                                    </div>
+
+                                    <div class="nx-tier-section-title">ENTERPRISE-TIER ACCESS:</div>
+                                    <ul class="nx-tier-features">
+                                        <li>
+                                            <span class="nx-check-icon">✓</span>
+                                            <span>Unlimited lead volume &amp; custom scoring models</span>
+                                        </li>
+                                        <li>
+                                            <span class="nx-check-icon">✓</span>
+                                            <span>Dedicated Private VPC or sovereign on-prem cluster</span>
+                                        </li>
+                                        <li>
+                                            <span class="nx-check-icon">✓</span>
+                                            <span>Morocco Law 09-08 / CNDP &amp; GDPR compliance</span>
+                                        </li>
+                                        <li>
+                                            <span class="nx-check-icon">✓</span>
+                                            <span>Custom Odoo 19 + JSON-RPC native connectors</span>
+                                        </li>
+                                        <li>
+                                            <span class="nx-check-icon">✓</span>
+                                            <span>Dedicated Solutions Architect &amp; RevOps lead</span>
+                                        </li>
+                                        <li>
+                                            <span class="nx-check-icon">✓</span>
+                                            <span><strong>99.95%</strong> SLA uptime guarantee</span>
+                                        </li>
+                                    </ul>
+
+                                    <div class="mt-auto pt-3">
+                                        <a href="/demo" class="nx-btn nx-btn-outline-card w-100">
+                                            Contact Enterprise Sales
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ── TELEMETRY STATUS STRIP (FROM SCREENSHOT) ─────── -->
+                <section class="nx-telemetry-strip-section py-4">
+                    <div class="container">
+                        <div class="nx-telemetry-banner d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="nx-status-dot"></span>
+                                <span class="nx-banner-text font-monospace">
+                                    LIVE_SESSION_TELEMETRY: CFC/CASABLANCA_NODE | TIER_3_ENTERPRISE_EVALUATION_ACTIVE | Logged to Odoo backend: Session_Duration: <span id="stripDuration">00:42s</span> | CNDP Sovereignty: Validated
+                                </span>
+                            </div>
+                            <div class="nx-banner-meta font-monospace text-muted">
+                                PING: 4ms (CFC DC) | TLS v1.3 | SOC2 TYPE II
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ── TECHNICAL SPECIFICATION MATRIX ──────────────── -->
+                <section class="nx-matrix-section py-5">
+                    <div class="container">
+                        <div class="text-center mb-5">
+                            <h2 class="nx-matrix-title">Technical Specification Matrix</h2>
+                            <p class="nx-matrix-subtitle text-muted mx-auto">
+                                Compare algorithmic capabilities, low-latency sync engines, data sovereignty guarantees, and SLA boundaries.
+                            </p>
+                        </div>
+
+                        <div class="nx-table-responsive">
+                            <table class="nx-spec-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 36%;">Capabilities &amp; Infrastructure</th>
+                                        <th style="width: 21%;">Starter</th>
+                                        <th style="width: 21%;" class="featured-col">Professional</th>
+                                        <th style="width: 22%;">Enterprise Custom</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Group A -->
+                                    <tr class="group-header">
+                                        <td colspan="4">A. AI MODEL INTELLIGENCE &amp; INFERENCE</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Monthly Lead Capacity</td>
+                                        <td>10,000</td>
+                                        <td class="featured-col">100,000</td>
+                                        <td>Unlimited</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Scoring Pipeline Architecture</td>
+                                        <td>Heuristic / Rule Data</td>
+                                        <td class="featured-col">XGBoost + Transformers</td>
+                                        <td>Custom Fine-Tuned LLMs</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Real-time Lead Enrichment Sources</td>
+                                        <td>3 Country Registries</td>
+                                        <td class="featured-col">15+ Live Data Providers</td>
+                                        <td>Bespoke Scraping &amp; APIs</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Vector Embeddings &amp; Deduplication</td>
+                                        <td class="text-muted">—</td>
+                                        <td class="featured-col text-primary">✓</td>
+                                        <td class="text-primary">✓</td>
+                                    </tr>
+
+                                    <!-- Group B -->
+                                    <tr class="group-header">
+                                        <td colspan="4">B. CRM INTEGRATIONS &amp; TELEMETRY</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Sync Latency Interval</td>
+                                        <td>15 minutes</td>
+                                        <td class="featured-col">&lt; 400 ms (Webhooks)</td>
+                                        <td>Sub-second / In-memory</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Odoo 19/18 JSON-RPC Connector</td>
+                                        <td>Basic Polling</td>
+                                        <td class="featured-col">Bidirectional Sync</td>
+                                        <td>Custom Native Module RPC</td>
+                                    </tr>
+                                    <tr>
+                                        <td>HubSpot / Salesforce Bi-directional Sync</td>
+                                        <td>Standard Fields</td>
+                                        <td class="featured-col">Deep Custom Objects</td>
+                                        <td>Full Schema Mapping</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Telemetry Audit Logging Retention</td>
+                                        <td>30 Days</td>
+                                        <td class="featured-col">90 Days</td>
+                                        <td>7 Years (Data Sovereignty)</td>
+                                    </tr>
+
+                                    <!-- Group C -->
+                                    <tr class="group-header">
+                                        <td colspan="4">C. SECURITY &amp; DATA SOVEREIGNTY</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Morocco CNDP Law 09-08 Compliance</td>
+                                        <td>Standard Terms</td>
+                                        <td class="featured-col">Certified</td>
+                                        <td>Sovereign Sandbox</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Casablanca Tier-III DC Data Residency</td>
+                                        <td class="text-muted">—</td>
+                                        <td class="featured-col">Optional Add-on</td>
+                                        <td>Native Residency</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Dedicated VPC &amp; IP Whitelisting</td>
+                                        <td class="text-muted">—</td>
+                                        <td class="featured-col text-muted">—</td>
+                                        <td class="text-success">Included</td>
+                                    </tr>
+
+                                    <!-- Group D -->
+                                    <tr class="group-header">
+                                        <td colspan="4">D. SUPPORT &amp; SLA</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Service Level Agreement (SLA)</td>
+                                        <td>99.5%</td>
+                                        <td class="featured-col">99.9%</td>
+                                        <td>99.99% Uptime</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Support Channel</td>
+                                        <td>Email (48h)</td>
+                                        <td class="featured-col">Dedicated Slack Channel</td>
+                                        <td>Named Architect &amp; Hotline</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ── FREQUENTLY ANSWERED INQUIRIES ────────────────── -->
+                <section class="nx-faq-section py-5">
+                    <div class="container">
+                        <div class="text-center mb-5">
+                            <h2 class="nx-matrix-title">Frequently Answered Architecture Inquiries</h2>
+                            <p class="nx-matrix-subtitle text-muted mx-auto">
+                                Answers on infrastructure, regulatory boundaries, and deployment topology.
+                            </p>
+                        </div>
+
+                        <div class="nx-faq-accordion mx-auto" style="max-width: 840px;">
+                            <div class="nx-faq-item">
+                                <button class="nx-faq-trigger" type="button">
+                                    <span>How does RevEngine guarantee data sovereignty under Morocco Law 09-08 and CNDP regulations?</span>
+                                    <span class="nx-faq-chevron">▼</span>
+                                </button>
+                                <div class="nx-faq-content">
+                                    <p>
+                                        RevEngine operates isolated sovereign compute pods hosted within Casablanca Tier-III Datacenter facilities. All telemetry payloads, personal contact fields, and predictive models are encrypted at rest with AES-256 and never traverse cross-border networks without explicit cryptographic authorization in compliance with Moroccan National Commission for Personal Data Protection (CNDP) Law 09-08.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="nx-faq-item">
+                                <button class="nx-faq-trigger" type="button">
+                                    <span>What is the real-world latency for Odoo CRM bidirectional scoring synchronization?</span>
+                                    <span class="nx-faq-chevron">▼</span>
+                                </button>
+                                <div class="nx-faq-content">
+                                    <p>
+                                        Using our native XML-RPC and asynchronous background workers (`sync_odoo.py`), the median round-trip latency between web lead submission and Odoo Kanban pipeline score injection is under 400 milliseconds. AI explanation notes and priority star updates execute atomically.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="nx-faq-item">
+                                <button class="nx-faq-trigger" type="button">
+                                    <span>Can we bring custom pre-trained ML models or proprietary scoring weights?</span>
+                                    <span class="nx-faq-chevron">▼</span>
+                                </button>
+                                <div class="nx-faq-content">
+                                    <p>
+                                        Yes. Enterprise Custom and Professional tiers allow your data science team to upload serialized LightGBM, XGBoost, or PyTorch models via our Model Registry API. You can also customize heuristic weights for firmographic attributes directly in Odoo configuration.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="nx-faq-item">
+                                <button class="nx-faq-trigger" type="button">
+                                    <span>What happens if our sales team exceeds our monthly lead quota unexpectedly?</span>
+                                    <span class="nx-faq-chevron">▼</span>
+                                </button>
+                                <div class="nx-faq-content">
+                                    <p>
+                                        We never drop or reject inbound leads. High-velocity spikes are safely buffered in persistent Redis queue clusters. Leads continue to be enriched and scored seamlessly without service interruption.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
+
+                <!-- ── ENTERPRISE PRE-FLIGHT CTA ────────────────────── -->
+                <section class="nx-preflight-section py-5">
+                    <div class="container">
+                        <div class="nx-preflight-card text-center position-relative">
+                            <span class="nx-preflight-pill mb-3 d-inline-block">
+                                ENTERPRISE PRE-FLIGHT EVALUATION
+                            </span>
+                            <h2 class="nx-preflight-title">
+                                Scale your revenue engine with<br/>precision telemetry today
+                            </h2>
+                            <p class="nx-preflight-subtitle mx-auto">
+                                Join enterprise sales teams running zero-latency algorithmic scoring across EMEA. Schedule a custom sandbox deployment today.
+                            </p>
+                            <div class="d-flex justify-content-center gap-3 mt-4 flex-wrap">
+                                <a href="/demo" class="nx-btn nx-btn-primary nx-btn-lg">
+                                    Request Enterprise Sandbox ↗
+                                </a>
+                                <a href="#billingSwitcher" class="nx-btn nx-btn-outline nx-btn-lg">
+                                    Evaluate Self-Serve Tiers
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ── ENTERPRISE COMPREHENSIVE FOOTER ──────────────── -->
+                <footer class="nx-pricing-footer">
+                    <div class="container">
+                        <div class="row g-4 pb-4 border-bottom border-secondary border-opacity-10">
+                            <div class="col-lg-4">
+                                <a href="/" class="nx-brand text-dark mb-3 d-inline-block">
+                                    <span class="nx-brand-sparkle text-primary">✦</span>
+                                    <span class="nx-brand-name text-dark">RevEngine</span>
+                                </a>
+                                <p class="text-muted small pe-lg-4">
+                                    High-velocity predictive RevOps infrastructure, sovereign lead enrichment pipelines, and real-time revenue intelligence across Casablanca and Paris.
+                                </p>
+                                <div class="text-muted small mt-2">
+                                    CFC Tower, Casablanca | +212 522-000000
+                                </div>
+                            </div>
+                            <div class="col-lg-2 col-md-4 col-6">
+                                <div class="nx-footer-col-title">PLATFORM</div>
+                                <ul class="list-unstyled nx-footer-links-col">
+                                    <li><a href="/">Architecture</a></li>
+                                    <li><a href="/demo">Sandbox</a></li>
+                                    <li><a href="#">API Reference</a></li>
+                                    <li><a href="#">Status</a></li>
+                                </ul>
+                            </div>
+                            <div class="col-lg-3 col-md-4 col-6">
+                                <div class="nx-footer-col-title">COMPLIANCE</div>
+                                <ul class="list-unstyled nx-footer-links-col">
+                                    <li><a href="#">Security &amp; Trust</a></li>
+                                    <li><a href="#">CNDP Compliance</a></li>
+                                    <li><a href="#">GDPR Data Policy</a></li>
+                                    <li><a href="#">ISO 27001 Report</a></li>
+                                </ul>
+                            </div>
+                            <div class="col-lg-3 col-md-4">
+                                <div class="nx-footer-col-title">LOCATIONS</div>
+                                <p class="text-muted small mb-2">
+                                    <strong>Casablanca Financial City</strong>, Tour CFC, Maroc
+                                </p>
+                                <p class="text-muted small">
+                                    <strong>Paris 8ème</strong>, Boulevard Haussmann, France
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center flex-wrap pt-3 small text-muted">
+                            <div>
+                                © 2026 RevEngine Technologies EMEA | Casablanca &amp; Paris | Moroccan Reg 09-08 / CNDP &amp; GDPR Compliant. All rights reserved.
+                            </div>
+                            <div class="d-flex gap-3 mt-2 mt-sm-0">
+                                <a href="#" class="text-muted text-decoration-none">Terms</a>
+                                <a href="#" class="text-muted text-decoration-none">Privacy</a>
+                                <a href="#" class="text-muted text-decoration-none">Security &amp; Trust</a>
+                            </div>
+                        </div>
+                    </div>
+                </footer>
+
+                <!-- Floating telemetry pill -->
+                <div class="nx-telemetry-hud" id="nxTelemetryHud">
+                    <span class="nx-telemetry-dot"></span>
+                    <span class="nx-telemetry-text">
+                        TELEMETRY: <strong id="nxPageViews">…</strong> | <span id="nxSessionTimer" class="font-monospace">00:00</span>
+                    </span>
+                </div>
+
+            </div>
+        </t>
+    </template>
+
+    <!-- ================================================================
+         DEMO FORM PAGE (ENTERPRISE ARCHITECTURE SESSION & LIVE RPC)
+         ================================================================ -->
+    <template id="demo_form" name="RevEngine - Book a Demo">
+        <t t-call="website.layout">
+            <t t-set="no_header" t-value="True"/>
+            <t t-set="no_footer" t-value="True"/>
+            <div id="wrap" class="nx-page nx-demo-screen">
+
+                <!-- ── ENTERPRISE EXECUTIVE HEADER ───────────────────── -->
+                <header class="nx-header">
+                    <div class="container d-flex align-items-center justify-content-between">
+                        <!-- Brand -->
+                        <a href="/" class="nx-brand">
+                            <span class="nx-brand-sparkle">✦</span>
+                            <span class="nx-brand-name">RevEngine</span>
+                            <span class="nx-badge-version">v2.4</span>
+                        </a>
+
+                        <!-- Center Nav Pill -->
+                        <nav class="nx-nav-pill d-none d-lg-flex align-items-center">
+                            <a href="/" class="nx-nav-link">Solutions</a>
+                            <a href="/pricing" class="nx-nav-link">Pricing</a>
+                            <a href="#" class="nx-nav-link">Documentation</a>
+                            <a href="/#report-section" class="nx-nav-link nx-report-pill-link">
+                                RevOps '26 Report
+                                <span class="nx-badge-new ms-1">NEW</span>
+                            </a>
+                        </nav>
+
+                        <!-- Right Actions -->
+                        <div class="d-flex align-items-center gap-3">
+                            <a href="/pricing" class="nx-link-plans d-none d-sm-inline-block">View Plans</a>
+                            <a href="/demo" class="nx-btn nx-btn-nav active">
+                                Book a Demo
+                                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" class="ms-1">
+                                    <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </a>
+                        </div>
+                    </div>
+                </header>
+
+                <!-- ── GATEWAY SYSTEM TELEMETRY STRIP ───────────────── -->
+                <section class="nx-gateway-strip py-2">
+                    <div class="container">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 font-monospace small">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="nx-status-dot"></span>
+                                <span class="text-dark fw-bold">GATEWAY:</span>
+                                <span class="text-secondary">casablanca-dc01.RevEngine.internal</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-3 flex-wrap">
+                                <span class="text-muted">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <polyline points="12 6 12 12 16 14"></polyline>
+                                    </svg>
+                                    LATENCY: <strong class="text-dark">14.8ms</strong>
+                                </span>
+                                <span class="text-muted">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1">
+                                        <polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polyline>
+                                    </svg>
+                                    THROUGHPUT: <strong class="text-dark">18.4k req/sec</strong>
+                                </span>
+                                <span class="nx-compliance-badge">
+                                    ✓ COMPLIANCE: CNDP 09-08 ACTIVE
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ── MAIN DEMO INTERACTION WORKSPACE ─────────────── -->
+                <section class="nx-demo-workspace py-5">
+                    <div class="container">
+                        <div class="row g-4 align-items-start">
+
+                            <!-- ── LEFT COLUMN: VALUE PROP & DISCOVERY FLOW ── -->
+                            <div class="col-lg-5">
+                                <div class="nx-left-card-wrap">
+                                    <!-- Pill -->
+                                    <div class="nx-status-pill-dark mb-3">
+                                        <span class="nx-status-dot"></span>
+                                        ENTERPRISE ONBOARDING &amp; SLA
+                                    </div>
+
+                                    <h1 class="nx-demo-title">
+                                        Accelerate your revenue<br/>engine with <span class="text-primary">predictive<br/>intelligence</span>
+                                    </h1>
+
+                                    <p class="nx-demo-subtitle text-muted mt-3 mb-4">
+                                        See how RevEngine unifies your disparate lead signals, trains custom scoring models, and feeds Odoo CRM in real time.
+                                    </p>
+
+                                    <!-- What happens next card -->
+                                    <div class="nx-discovery-card mb-4">
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <h5 class="fw-bold m-0 text-dark">What happens next?</h5>
+                                            <span class="nx-flow-badge">DISCOVERY FLOW</span>
+                                        </div>
+
+                                        <div class="nx-flow-steps">
+                                            <!-- Step 1 -->
+                                            <div class="nx-flow-step">
+                                                <div class="nx-step-number">1</div>
+                                                <div class="nx-step-body">
+                                                    <h6>15-Minute Architecture Qualification</h6>
+                                                    <p>Review your CRM stack, lead volume, and qualification criteria with a dedicated RevOps specialist.</p>
+                                                </div>
+                                            </div>
+                                            <!-- Step 2 -->
+                                            <div class="nx-flow-step">
+                                                <div class="nx-step-number">2</div>
+                                                <div class="nx-step-body">
+                                                    <h6>Live Sandbox Walkthrough</h6>
+                                                    <p>Test custom ML scoring algorithms directly against anonymized sample firmographic data.</p>
+                                                </div>
+                                            </div>
+                                            <!-- Step 3 -->
+                                            <div class="nx-flow-step">
+                                                <div class="nx-step-number">3</div>
+                                                <div class="nx-step-body">
+                                                    <h6>Sovereign Data Security &amp; Compliance</h6>
+                                                    <p>Full review of CNDP Moroccan Law 09-08 &amp; GDPR compliance, on-premise VPC isolation options.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Testimonial Card -->
+                                    <div class="nx-testimonial-card mb-4">
+                                        <div class="nx-stars mb-2">
+                                            ★ ★ ★ ★ ★
+                                        </div>
+                                        <p class="nx-quote fst-italic text-dark">
+                                            "RevEngine reduced our inbound lead qualification latency from 4 hours to 12 seconds with flawless Odoo integration."
+                                        </p>
+                                        <div class="d-flex align-items-center gap-3 mt-3">
+                                            <div class="nx-avatar-initials">KB</div>
+                                            <div>
+                                                <div class="fw-bold text-dark small">Karim Bennani</div>
+                                                <div class="text-muted small">VP of Sales Ops, Maghreb Offshoring</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 4 Badges 2x2 Grid -->
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <div class="nx-cert-badge">
+                                                <div class="nx-cert-icon">🛡</div>
+                                                <div>
+                                                    <div class="fw-bold text-dark small">CNDP Law 09-08</div>
+                                                    <div class="text-muted" style="font-size: 0.65rem;">Registry #A-SC-412/24</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="nx-cert-badge">
+                                                <div class="nx-cert-icon">🏢</div>
+                                                <div>
+                                                    <div class="fw-bold text-dark small">Casablanca Tier-III</div>
+                                                    <div class="text-muted" style="font-size: 0.65rem;">Sovereign Node DC-01</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="nx-cert-badge">
+                                                <div class="nx-cert-icon">🔒</div>
+                                                <div>
+                                                    <div class="fw-bold text-dark small">SOC2 Type II</div>
+                                                    <div class="text-muted" style="font-size: 0.65rem;">Annual Independent Audit</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="nx-cert-badge">
+                                                <div class="nx-cert-icon">⚡</div>
+                                                <div>
+                                                    <div class="fw-bold text-dark small">99.99% Availability</div>
+                                                    <div class="text-muted" style="font-size: 0.65rem;">Financially Backed SLA</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+
+                            <!-- ── RIGHT COLUMN: INTERACTIVE FORM & LIVE PAYLOAD ── -->
+                            <div class="col-lg-7">
+
+                                <!-- Card 1: The Session Booking Form -->
+                                <div class="nx-form-main-card mb-4">
+                                    <div class="d-flex justify-content-between align-items-start mb-3">
+                                        <div>
+                                            <h3 class="fw-bold text-dark mb-1" style="font-size: 1.35rem;">
+                                                Book an Enterprise Architecture Session
+                                            </h3>
+                                            <p class="text-muted small m-0">
+                                                Direct handoff to platform infrastructure specialists within 60 minutes.
+                                            </p>
+                                        </div>
+                                        <span class="nx-rpc-stream-pill">
+                                            ⟳ LIVE RPC STREAM
+                                        </span>
+                                    </div>
+
+                                    <!-- Success Banner (Triggered by /submit-lead redirect) -->
+                                    <t t-if="request.params.get('success')">
+                                        <div class="alert alert-success d-flex align-items-center mb-4 p-3" role="alert"
+                                             style="border-radius: 12px; background: #ECFDF5; border: 1.5px solid #A7F3D0; color: #065F46;">
+                                            <span class="me-2 fw-bold" style="font-size: 1.2rem;">✓</span>
+                                            <div>
+                                                <strong>Request Sent!</strong> Your enterprise architecture request and digital telemetry payload have been synchronized with the Odoo CRM pipeline.
+                                            </div>
+                                        </div>
+                                    </t>
+
+                                    <form action="/submit-lead" method="POST" id="demoArchitectureForm">
+                                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                        <!-- Hidden Telemetry Inputs (Injected by telemetry.js on submit) -->
+                                        <input type="hidden" name="pricing_page_visits" id="pricing_page_visits" value="0"/>
+                                        <input type="hidden" name="time_on_site" id="time_on_site" value="0"/>
+
+                                        <div class="row g-3">
+                                            <!-- Row 1: Name & Email -->
+                                            <div class="col-md-6">
+                                                <label class="nx-label-form">Full Name <span class="text-danger">*</span></label>
+                                                <input type="text" class="nx-input-clean" id="f_name" name="contact_name"
+                                                       required="required" placeholder="Karim Alami" value="Karim Alami"/>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="nx-label-form">Corporate Email <span class="text-danger">*</span></label>
+                                                <input type="email" class="nx-input-clean" id="f_email" name="email_from"
+                                                       required="required" placeholder="karim@company.ma" value="karim@company.ma"/>
+                                            </div>
+
+                                            <!-- Row 2: Company & Industry -->
+                                            <div class="col-md-6">
+                                                <label class="nx-label-form">Company Name <span class="text-danger">*</span></label>
+                                                <input type="text" class="nx-input-clean" id="f_company" name="partner_name"
+                                                       required="required" placeholder="Atlas Cloud Solutions" value="Atlas Cloud Solutions"/>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="nx-label-form">Industry Vertical</label>
+                                                <select class="nx-input-clean" id="f_industry" name="industry">
+                                                    <option value="it_offshoring" selected="selected">IT &amp; Offshoring</option>
+                                                    <option value="fintech_banking">Banking &amp; FinTech</option>
+                                                    <option value="telecom">Telecommunications</option>
+                                                    <option value="manufacturing">Manufacturing &amp; Logistics</option>
+                                                    <option value="healthcare">Healthcare &amp; Pharma</option>
+                                                    <option value="other">Other</option>
+                                                </select>
+                                            </div>
+
+                                            <!-- Row 3: Seniority, Size, Current CRM Stack -->
+                                            <div class="col-md-4">
+                                                <label class="nx-label-form">Job Seniority</label>
+                                                <select class="nx-input-clean" id="f_role" name="job_seniority">
+                                                    <option value="c_level" selected="selected">C-Level / VP / Founder</option>
+                                                    <option value="director">Director</option>
+                                                    <option value="manager">Manager</option>
+                                                    <option value="individual">Engineer / Contributor</option>
+                                                    <option value="other">Other</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="nx-label-form">Company Size</label>
+                                                <select class="nx-input-clean" id="f_size" name="company_size">
+                                                    <option value="1_10">1 - 10 employees</option>
+                                                    <option value="11_50">11 - 50 employees</option>
+                                                    <option value="51_250" selected="selected">51 - 250 employees</option>
+                                                    <option value="251_1000">251 - 1000 employees</option>
+                                                    <option value="1000_plus">1000+ employees</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="nx-label-form">Current CRM Stack</label>
+                                                <select class="nx-input-clean" id="f_crm" name="existing_crm">
+                                                    <option value="odoo" selected="selected">Odoo CRM (Native)</option>
+                                                    <option value="salesforce">Salesforce</option>
+                                                    <option value="hubspot">HubSpot</option>
+                                                    <option value="custom">Custom Internal CRM</option>
+                                                    <option value="other">Other</option>
+                                                </select>
+                                            </div>
+
+                                            <!-- Checkbox CNDP -->
+                                            <div class="col-12 mt-3">
+                                                <label class="nx-checkbox-wrap">
+                                                    <input type="checkbox" name="cndp_consent" value="1" required="required" checked="checked"/>
+                                                    <span class="small text-muted">
+                                                        I consent to data processing under Moroccan Law 09-08 / CNDP regulations and authorize encrypted sync to our regional telemetry ledger.
+                                                    </span>
+                                                </label>
+                                            </div>
+
+                                            <!-- Submit Button -->
+                                            <div class="col-12 mt-3">
+                                                <button type="submit" class="nx-btn nx-btn-primary w-100 py-3 fw-bold">
+                                                    ⚡ Request Personalized Demo &amp; Sync Payload
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+
+                                <!-- Card 2: Live JSON Telemetry Terminal (FROM SCREENSHOT) -->
+                                <div class="nx-terminal-card">
+                                    <div class="nx-terminal-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="nx-browser-dots me-2">
+                                                <span class="dot red"></span>
+                                                <span class="dot yellow"></span>
+                                                <span class="dot green"></span>
+                                            </div>
+                                            <span class="nx-terminal-file font-monospace">
+                                                { } crm_odoo_payload.json
+                                            </span>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="nx-terminal-badge-verified">
+                                                ● Live Odoo 16+ RPC Payload Verified
+                                            </span>
+                                            <button type="button" class="nx-btn-copy-json" id="btnCopyJson">
+                                                ❐ Copy Raw JSON for Odoo
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="nx-terminal-body">
+                                        <pre class="m-0"><code id="livePayloadJson" class="language-json">{
+  <span class="token-key">"lead_metadata"</span>: {
+    <span class="token-key">"contact_name"</span>: <span class="token-string" id="jsonName">"Karim Alami"</span>,
+    <span class="token-key">"email_from"</span>: <span class="token-string" id="jsonEmail">"karim@company.ma"</span>,
+    <span class="token-key">"company_name"</span>: <span class="token-string" id="jsonCompany">"Atlas Cloud Solutions"</span>,
+    <span class="token-key">"industry"</span>: <span class="token-string" id="jsonIndustry">"IT &amp; Offshoring"</span>,
+    <span class="token-key">"job_seniority"</span>: <span class="token-string" id="jsonRole">"C-Level / VP / Founder"</span>,
+    <span class="token-key">"company_size"</span>: <span class="token-string" id="jsonSize">"51 - 250"</span>,
+    <span class="token-key">"existing_crm"</span>: <span class="token-string" id="jsonCrm">"Odoo CRM"</span>
+  },
+  <span class="token-key">"behavioral_telemetry"</span>: {
+    <span class="token-key">"pages_visited_count"</span>: <span class="token-number" id="jsonPages">4</span>,
+    <span class="token-key">"pricing_page_visits"</span>: <span class="token-number" id="jsonPricingVisits">2</span>,
+    <span class="token-key">"time_on_site_seconds"</span>: <span class="token-number" id="jsonTime">187</span>,
+    <span class="token-key">"content_downloaded"</span>: <span class="token-bool" id="jsonDownloaded">true</span>,
+    <span class="token-key">"source"</span>: <span class="token-string">"Direct Inbound"</span>
+  }
+}</code></pre>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ── ENTERPRISE FOOTER ────────────────────────────── -->
+                <footer class="nx-pricing-footer border-top">
+                    <div class="container">
+                        <div class="row g-4 pb-4 border-bottom border-secondary border-opacity-10">
+                            <div class="col-lg-4">
+                                <a href="/" class="nx-brand text-dark mb-2 d-inline-block">
+                                    <span class="nx-brand-sparkle text-primary">✦</span>
+                                    <span class="nx-brand-name text-dark">RevEngine</span>
+                                </a>
+                                <p class="text-muted small pe-lg-4">
+                                    Autonomous revenue intelligence and ML lead distribution platform engineered for EMEA sovereign data environments.
+                                </p>
+                                <div class="nx-system-pill mt-2">
+                                    <span class="nx-status-dot"></span>
+                                    ALL SYSTEMS OPERATIONAL
+                                </div>
+                            </div>
+                            <div class="col-lg-2 col-md-4 col-6">
+                                <div class="nx-footer-col-title">PLATFORM</div>
+                                <ul class="list-unstyled nx-footer-links-col">
+                                    <li><a href="/">Architecture</a></li>
+                                    <li><a href="/pricing">Solutions</a></li>
+                                    <li><a href="#">API Reference</a></li>
+                                </ul>
+                            </div>
+                            <div class="col-lg-3 col-md-4 col-6">
+                                <div class="nx-footer-col-title">GOVERNANCE</div>
+                                <ul class="list-unstyled nx-footer-links-col">
+                                    <li><a href="#">Security &amp; Trust</a></li>
+                                    <li><a href="#">CNDP Compliance</a></li>
+                                    <li><a href="#">GDPR Data Portal</a></li>
+                                </ul>
+                            </div>
+                            <div class="col-lg-3 col-md-4">
+                                <div class="nx-footer-col-title">OPERATIONS</div>
+                                <ul class="list-unstyled nx-footer-links-col">
+                                    <li><a href="#">Status</a></li>
+                                    <li><a href="#">Casablanca DC</a></li>
+                                    <li><a href="#">Paris PoP Node</a></li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center flex-wrap pt-3 small text-muted font-monospace" style="font-size: 0.72rem;">
+                            <div>
+                                © 2026 RevEngine Technologies EMEA (Casablanca &amp; Paris). Morocco Law 09-08 / CNDP &amp; GDPR Compliant. All rights reserved.
+                            </div>
+                            <div class="mt-2 mt-sm-0">
+                                CNDP Verification A-GC-412/24 | TLS 1.3 Strict
+                            </div>
+                        </div>
+                    </div>
+                </footer>
+
+                <!-- Floating telemetry pill -->
+                <div class="nx-telemetry-hud" id="nxTelemetryHud">
+                    <span class="nx-telemetry-dot"></span>
+                    <span class="nx-telemetry-text">
+                        TELEMETRY: <strong id="nxPageViews">…</strong> | <span id="nxSessionTimer" class="font-monospace">00:00</span>
+                    </span>
+                </div>
+
+            </div>
+        </t>
+    </template>
+
+    <!-- ================================================================
+         THANK YOU PAGE
+         ================================================================ -->
+    <template id="demo_thankyou" name="RevEngine - Thank You">
+        <t t-call="website.layout">
+            <t t-set="no_header" t-value="True"/>
+            <t t-set="no_footer" t-value="True"/>
+            <div id="wrap" class="nx-page">
+
+                <section class="nx-hero nx-hero-sm">
+                    <div class="nx-hero-bg"></div>
+                    <div class="container position-relative text-center py-5">
+                        <div class="nx-thankyou-icon mb-3">✅</div>
+                        <h1 class="nx-hero-title" style="font-size: 2.8rem;">Lead Successfully Ingested</h1>
+                        <p class="nx-hero-subtitle mx-auto">
+                            Thank you! Your demo submission has been recorded and processed through our behavioral telemetry pipeline.<br/>
+                            Your company profile and intent signals are being evaluated by our ML models.
+                        </p>
+                        <div class="mt-4">
+                            <a href="/" class="nx-btn nx-btn-primary">
+                                Back to Platform Overview
+                            </a>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </t>
+    </template>
+
+</odoo>

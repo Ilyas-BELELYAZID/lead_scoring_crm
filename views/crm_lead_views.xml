@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================
+         CRM Lead Form – inject scoring fields
+         ================================================================ -->
+    <record id="crm_lead_scoring_form" model="ir.ui.view">
+        <field name="name">crm.lead.form.scoring</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.crm_lead_view_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Add a "Digital Telemetry & AI" tab inside the form notebook -->
+            <xpath expr="//notebook" position="inside">
+                <page string="Digital Telemetry &amp; AI" name="digital_telemetry_ai">
+                    <group>
+                        <group string="ML Scoring &amp; AI">
+                            <field name="ml_probability" widget="float"/>
+                            <field name="manual_score"/>
+                            <field name="priority" widget="priority" string="Priority Stars"/>
+                        </group>
+                        <group string="Self-Reported Qualification">
+                            <field name="x_job_seniority"/>
+                            <field name="x_company_size"/>
+                            <field name="industry"/>
+                            <field name="existing_crm"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Digital Behavioral Telemetry">
+                            <field name="x_pricing_views"/>
+                            <field name="x_time_on_site"/>
+                            <field name="visited_pricing_page"/>
+                            <field name="pricing_page_time"/>
+                            <field name="downloaded_report"/>
+                        </group>
+                        <group string="Data Privacy &amp; Governance">
+                            <field name="cndp_consent"/>
+                        </group>
+                    </group>
+                    <group string="AI Explainability Insight">
+                        <field name="ai_explanation" nolabel="1"
+                               placeholder="The AI explainability note will appear here after sync_odoo.py scores the lead…"/>
+                    </group>
+                </page>
+            </xpath>
+
+        </field>
+    </record>
+
+    <!-- ================================================================
+         CRM Lead Tree/List – add ML probability column
+         ================================================================ -->
+    <record id="crm_lead_scoring_tree" model="ir.ui.view">
+        <field name="name">crm.lead.tree.scoring</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.crm_case_tree_view_leads"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='priority']" position="after">
+                <field name="ml_probability" string="ML %" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>
+
