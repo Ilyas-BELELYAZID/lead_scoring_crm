@@ -1,0 +1,133 @@
+\documentclass[10pt,a4paper]{article}
+
+% --- Paramètres de Mise en Page (Garantie 1 Page Stricte) ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage[a4paper, top=0.9cm, bottom=0.9cm, left=1.2cm, right=1.2cm]{geometry}
+\usepackage{lmodern}
+\usepackage{amsmath, amssymb}
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{titlesec}
+
+% --- Palette de Couleurs Professionnelle RevEngine ---
+\definecolor{primary}{RGB}{15, 23, 42}     % Slate Dark
+\definecolor{accent}{RGB}{30, 64, 175}     % Blue Accent
+\definecolor{secondary}{RGB}{79, 70, 229}  % Indigo
+\definecolor{lightbg}{RGB}{248, 250, 252}  % Slate Light
+\definecolor{bordercolor}{RGB}{226, 232, 240}
+\definecolor{morocco}{RGB}{194, 65, 12}
+
+% --- Typographie & Titres Compacts ---
+\pagestyle{empty}
+\linespread{0.97}
+
+\titleformat{\section}
+  {\color{accent}\fontsize{9.5}{11}\bfseries\uppercase}
+  {}{0em}
+  {}[\vspace{-0.45em}\rule{\textwidth}{0.5pt}\vspace{-0.45em}]
+
+\titlespacing*{\section}{0pt}{3.5pt}{2pt}
+
+\setlist[itemize]{leftmargin=11pt, labelsep=3pt, itemsep=0.5pt, topsep=0.8pt, parsep=0pt}
+\setlist[enumerate]{leftmargin=11pt, labelsep=3pt, itemsep=0.5pt, topsep=0.8pt, parsep=0pt}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=accent,
+    urlcolor=accent
+}
+
+\begin{document}
+
+% --- EN-TÊTE OFFICIEL ENSAH & MÉTADONNÉES DU MODULE ---
+\begin{tcolorbox}[
+    colback=lightbg,
+    colframe=bordercolor,
+    arc=2.5pt,
+    boxrule=0.7pt,
+    left=6pt, right=6pt, top=3.5pt, bottom=3.5pt
+]
+\begin{minipage}[c]{0.63\textwidth}
+    {\fontsize{7.5}{9}\selectfont\textbf{\color{accent}ENSAH -- UNIVERSITÉ ABDELMALEK ESSAÂDI | TDIA3 (Semestre 5)}}\\[1pt]
+    {\fontsize{11.5}{13.5}\selectfont\textbf{\color{primary}RevEngine : Lead Scoring Prédictif \& RevOps}}\\[1pt]
+    {\fontsize{7.8}{9.5}\selectfont\textit{Fiche synthétique de projet -- Webmarketing et CRM (Année 2026/2027)}}\\[1pt]
+    {\fontsize{7.2}{8.5}\selectfont\textbf{Dépôt GitHub :} \url{https://github.com/Ilyas-BELELYAZID/lead_scoring_crm.git}}
+\end{minipage}
+\hfill
+\begin{minipage}[c]{0.36\textwidth}
+    \fontsize{7.2}{9.2}\selectfont
+    \textbf{Équipe :} Ilyas BEL EL YAZID \& Moaad DAOUDI\\
+    \textbf{Enseignante :} Pr. Sara OUALD CHAIB\\
+    \textbf{Sujet :} Sujet 6 -- Lead Scoring Prédictif \& CRM (Odoo vs. HubSpot)
+\end{minipage}
+\end{tcolorbox}
+
+\vspace{-0.4em}
+
+% --- 1. CONTEXTE & OBJECTIFS MESURABLES ---
+\section{1. Contexte Métier \& Objectifs Mesurables}
+Dans le B2B, \textbf{67\,\% du temps commercial est gaspillé} à contacter des leads froids (\textit{Salesforce Research}). Le scoring heuristique manuel (ex. : $+10$ pts si e-mail ouvert) sature les commerciaux de \textbf{faux positifs (746 identifiés)}.
+\textbf{Objectifs cibles :} \textbf{--50\,\% sur le temps de qualification} et \textbf{+20\,\% sur la conversion SQL $\rightarrow$ Won} (\textit{benchmarks Forrester/Gartner}).
+
+\vspace{-0.3em}
+
+% --- 2. MÉTHODES, OUTILS & BENCHMARK CRM ---
+\section{2. Méthode, Architecture \& Benchmark CRM (Odoo vs. HubSpot)}
+\begin{itemize}
+    \item \textbf{Acquisition \& Télémétrie :} 3 pages web (\texttt{/}, \texttt{/pricing}, \texttt{/demo}) avec script captant le temps passé et l'intérêt tarifaire (\texttt{x\_pricing\_visited}).
+    \item \textbf{Modélisation ML :} 4 modèles supervisés entraînés sur 9\,240 prospects (découpage $30\,\%$ test étanche anti-\textit{leakage}) : \textbf{Régression Logistique} (calibrée), \textbf{Random Forest}, \textbf{LightGBM} et \textbf{XGBoost}.
+    \item \textbf{Justification du Choix CRM (Odoo Community vs. HubSpot Free) :} Odoo 19 a été retenu car \textbf{HubSpot Free bride son API} (100 req/10s), héberge les données hors du Maroc (\textbf{risque CNDP}), et \textbf{verrouille son Lead Scoring prédictif} derrière l'offre Enterprise ($3\,600\,\$/\text{mois}$). Odoo Community permet l'extension native en Python ORM, l'auto-hébergement souverain et l'automatisation sans surcoût.
+\end{itemize}
+
+\vspace{-0.3em}
+
+% --- 3. RÉSULTATS COMPARATIFS & PREUVES MATHÉMATIQUES ---
+\section{3. Résultats Comparatifs \& Preuves Mathématiques (KPIs)}
+\vspace{0.1em}
+\noindent
+\begin{tabularx}{\textwidth}{X c c c c c}
+\toprule
+\textbf{Approche Evaluée} & \textbf{AUC-ROC} & \textbf{Précision} & \textbf{Rappel} & \textbf{F1-Score} & \textbf{Accuracy} \\
+\midrule
+Scoring Manuel (Baseline Heuristique) & 0,697 & 53,0\,\% & 77,2\,\% & 0,629 & 64,1\,\% \\
+\textbf{Régression Logistique (Production Odoo)} & \textbf{0,879} & \textbf{76,1\,\%} & \textbf{71,8\,\%} & \textbf{0,739} & \textbf{80,9\,\%} \\
+Random Forest (Ensemble) & 0,889 & 80,2\,\% & 74,5\,\% & 0,772 & 83,1\,\% \\
+LightGBM Classifier & 0,894 & 82,5\,\% & 76,1\,\% & 0,791 & 84,6\,\% \\
+\textbf{XGBoost (Modèle Champion)} & \textbf{0,894} & \textbf{81,8\,\%} & \textbf{75,8\,\%} & \textbf{0,787} & \textbf{84,2\,\%} \\
+\bottomrule
+\end{tabularx}
+\vspace{0.1em}
+
+\begin{itemize}
+    \item \textbf{Gain Prédictif Net :} $+0,182$ à $+0,197$ point d'AUC face au manuel ($+27\,\%$) ; chute drastique des faux positifs.
+    \item \textbf{Efficacité Commerciale (Gain Cumulé) :} Les \textbf{top 30\,\% des leads IA captent 66\,\% à 67\,\% des ventes réelles} (vs $46,8\,\%$ en manuel et $30,0\,\%$ au hasard).
+    \item \textbf{Explicabilité (XAI) :} L'analyse des \textit{Odds Ratios} isole les leviers clés : profil \textit{Working Professional/C-Level} ($\text{OR} = \mathbf{4{,}71}$), visite Pricing ($\mathbf{\times 3}$), temps $> 400$\,s, contre pénalité si profil inactif ($\text{OR} < 0{,}35$).
+\end{itemize}
+
+\vspace{-0.3em}
+
+% --- 4. LIMITES DU MODÈLE ---
+\section{4. Limites Identifiées (Données, Biais, Droit, Coût)}
+\begin{itemize}
+    \item \textbf{Démarrage à Froid (\textit{Cold-Start}) \& Biais Historique :} Difficulté à évaluer des profils atypiques non présents dans le jeu d'entraînement initial (sur-représentation des sources web traditionnelles).
+    \item \textbf{Dérive des Données (\textit{Data Drift}) :} Évolution des comportements d'achat au fil des saisons nécessitant un monitoring continu et un réentraînement trimestriel automatisé.
+    \item \textbf{Infrastructure \& Coût :} Exige un serveur local PostgreSQL dimensionné et la maintenance du pipeline Python.
+\end{itemize}
+
+\vspace{-0.3em}
+
+% --- 5. RECOMMANDATIONS POUR UNE ENTREPRISE MAROCAINE ---
+\section{5. Trois Recommandations Concrètes pour une Entreprise Marocaine}
+\begin{enumerate}
+    \item \textbf{Hygiène des Données Locales :} Nettoyer et normaliser les données CRM avant modélisation (formats téléphoniques $+212$ / $06$ / $05$, nomenclature des villes et adresses professionnelles).
+    \item \textbf{SLA d'Appel Immédiat \& Canal WhatsApp :} Automatiser une notification WhatsApp aux commerciaux dès qu'un prospect dépasse $75\,\%$ de score IA (priorité $\bigstar\bigstar\bigstar$) pour un contact en moins de 15 minutes.
+    \item \textbf{Gouvernance \& Déclaration CNDP (Loi 09-08) :} Déposer la déclaration préalable auprès de la CNDP pour le traitement automatisé des données prospects et garantir l'hébergement local des serveurs Odoo.
+\end{enumerate}
+
+\end{document}

@@ -148,13 +148,17 @@ lead_scoring_crm/
 │   └── src/css/styles.css          # SaaS styling (modern indigo/slate palette)
 ├── Dataset_leads/
 │   └── Lead Scoring.csv            # Original marketing & qualification dataset
+├── deliverables/                   # 📦 Dossier officiel des livrables de soutenance
+│   ├── rapport_synthese_revengine.pdf # Fiche de synthèse 1 page (Pr. Sara Ouald Chaib)
+│   ├── courbe_roc_comparative.png  # Visualisation 300 DPI : Courbe ROC Multi-Modèles
+│   ├── courbe_gain_cumule.png      # Visualisation 300 DPI : Gain Cumulé (Top 30% des leads)
+│   ├── fichier_import_odoo.csv     # Export pour intégration native Odoo CRM
+│   ├── import_hubspot_leads.csv    # Export pour benchmark HubSpot CRM
+│   ├── lead_scoring_model.pkl      # Pipeline IA de production sérialisé
+│   └── lead_scoring_lgbm.pkl       # Modèle LightGBM de production sérialisé
 ├── lead_scoring.ipynb              # Portable Jupyter ML pipeline (Data Prep, 4 Models, ROC, Exports)
+├── rapport_synthese_revengine.tex  # Code source LaTeX de la fiche 1 page
 ├── sync_odoo.py                    # Direct database synchronizer for AI scores and chatter notes
-├── courbe_roc_comparative.png      # Exported 300 DPI comparative ROC curve deliverable
-├── fichier_import_odoo.csv         # Deliverable: Odoo native import file
-├── import_hubspot_leads.csv        # Deliverable: HubSpot native import file
-├── lead_scoring_model.pkl          # Serialized production ML pipeline
-├── lead_scoring_lgbm.pkl           # Serialized LightGBM ML model
 ├── __manifest__.py                 # Odoo module metadata
 ├── __init__.py                     # Module entry point
 ├── .gitignore                      # Git exclusion rules
